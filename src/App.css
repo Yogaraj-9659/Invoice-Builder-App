@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+.bg-gray-100 {
+    background-color: #f3f4f6 !important;
+}
+
+.bg-white {
+    background-color: #ffffff !important;
+}
+
+.text-gray-600 {
+    color: #4b5563 !important;
+}
+
+.pdf-mode * {
+    color: #000 !important;
+    background: #fff !important;
+}
