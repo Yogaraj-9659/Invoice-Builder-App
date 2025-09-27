@@ -136,7 +136,7 @@ export default function App() {
         <div className="min-h-screen p-6 text-[#f3f4f6]"
             style={{ background: "linear-gradient(to bottom right, #111827, #000000, #1f2937)" }}>
             <div className="max-w-6xl mx-auto">
-                <h1 className="text-3xl font-bold mb-6 text-[#1e293b] drop-shadow-sm">
+                <h1 className="text-3xl font-bold mb-6 text-[#FFFFFF] drop-shadow-sm">
                     Invoice Builder</h1>
                 <div className="grid md:grid-cols-2 gap-6">
 
