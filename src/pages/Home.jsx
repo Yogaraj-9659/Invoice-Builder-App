@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import html2pdf from "html2pdf.js";
+import { jsPDF } from "jspdf";
 import { FaPlus, FaFilePdf, FaPrint, FaTrash } from "react-icons/fa";
 
 export default function App() {
@@ -51,18 +51,62 @@ export default function App() {
         return { subTotal, taxAmount, grandTotal };
     }, [invoice.items, invoice.taxPercent]);
 
+    // ✅ jsPDF Export
     const exportPDF = () => {
-        const element = document.getElementById("invoice-preview");
-        if (!element) return alert("Preview not found");
+        const doc = new jsPDF();
 
-        const opt = {
-            margin: 0.4,
-            filename: `${invoice.invoiceNo || "invoice"}.pdf`,
-            image: { type: "jpeg", quality: 0.98 },
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
-        };
-        html2pdf().set(opt).from(element).save();
+        // Header
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(18);
+        doc.text("Invoice", 105, 20, { align: "center" });
+
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Invoice No: ${invoice.invoiceNo}`, 20, 40);
+        doc.text(`Date: ${invoice.date}`, 20, 48);
+
+        // Client
+        doc.text("Bill To:", 20, 65);
+        doc.text(invoice.client.name || "-", 20, 72);
+        doc.text(invoice.client.address || "-", 20, 79);
+        doc.text(`${invoice.client.email || ""} ${invoice.client.phone || ""}`, 20, 86);
+
+        // Items table
+        let y = 105;
+        doc.setFont("helvetica", "bold");
+        doc.text("Description", 20, y);
+        doc.text("Qty", 100, y);
+        doc.text("Rate", 130, y);
+        doc.text("Amount", 160, y);
+
+        doc.setFont("helvetica", "normal");
+        y += 8;
+
+        invoice.items.forEach((it, idx) => {
+            const amount = (Number(it.qty || 0) * Number(it.rate || 0)) || 0;
+            doc.text(it.description || "-", 20, y);
+            doc.text(String(it.qty), 100, y);
+            doc.text(`${invoice.currency} ${Number(it.rate).toFixed(2)}`, 130, y);
+            doc.text(`${invoice.currency} ${amount.toFixed(2)}`, 160, y);
+            y += 8;
+        });
+
+        // Totals
+        y += 10;
+        doc.setFont("helvetica", "bold");
+        doc.text(`Subtotal: ${invoice.currency} ${totals.subTotal.toFixed(2)}`, 130, y);
+        y += 8;
+        doc.text(`Tax (${invoice.taxPercent}%): ${invoice.currency} ${totals.taxAmount.toFixed(2)}`, 130, y);
+        y += 8;
+        doc.text(`Total: ${invoice.currency} ${totals.grandTotal.toFixed(2)}`, 130, y);
+
+        // Footer
+        y += 20;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "italic");
+        doc.text("Thank you for your business!", 105, y, { align: "center" });
+
+        doc.save(`${invoice.invoiceNo}.pdf`);
     };
 
     const printInvoice = () => {
@@ -89,15 +133,16 @@ export default function App() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 p-6 text-gray-100">
+        <div className="min-h-screen p-6 text-[#f3f4f6]"
+            style={{ background: "linear-gradient(to bottom right, #111827, #000000, #1f2937)" }}>
             <div className="max-w-6xl mx-auto">
-                <h1 className="text-3xl font-bold mb-6 text-black-800 drop-shadow-sm">
+                <h1 className="text-3xl font-bold mb-6 text-[#1e293b] drop-shadow-sm">
                     Invoice Builder</h1>
                 <div className="grid md:grid-cols-2 gap-6">
 
+                    {/* Client & Invoice Details */}
                     <div className="space-y-5">
-
-                        <div className="bg-white/90 backdrop-blur-md p-5 rounded-xl shadow-lg border border-gray-200">
+                        <div className="bg-[#ffffff]/90 backdrop-blur-md p-5 rounded-xl shadow-lg border border-[#e5e7eb]">
                             <h2 className="font-semibold text-lg mb-3 text-black">Client & Invoice Details</h2>
                             <div className="space-y-3">
                                 <div className="flex gap-3">
@@ -107,7 +152,6 @@ export default function App() {
                                         value={invoice.client.name}
                                         onChange={(e) => updateClient("name", e.target.value)}
                                     />
-
                                     <input
                                         className="w-40 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white text-black placeholder-black"
                                         value={invoice.invoiceNo}
@@ -138,7 +182,8 @@ export default function App() {
                             </div>
                         </div>
 
-                        <div className="bg-white/90 backdrop-blur-md p-5 rounded-xl shadow-lg border border-gray-200">
+                        {/* Items */}
+                        <div className="bg-[#ffffff]/90 backdrop-blur-md p-5 rounded-xl shadow-lg border border-[#e5e7eb]">
                             <div className="flex justify-between items-center mb-3">
                                 <h2 className="font-semibold text-lg text-black">Items</h2>
                                 <button onClick={addItem} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 transition text-white px-4 py-2 rounded-lg shadow">
@@ -148,7 +193,7 @@ export default function App() {
                             <div className="overflow-x-auto">
                                 <table className="w-full table-auto border-collapse">
                                     <thead>
-                                        <tr className="text-left border-b bg-gray-100">
+                                        <tr className="text-left border-b bg-[#f3f4f6]">
                                             <th className="py-2 px-2 text-blue-600">Description</th>
                                             <th className="py-2 px-2 w-20 text-blue-600">Qty</th>
                                             <th className="py-2 px-2 w-28 text-blue-600">Rate</th>
@@ -207,14 +252,15 @@ export default function App() {
                             </div>
                         </div>
 
-                        <div className="bg-white/90 backdrop-blur-md p-5 rounded-xl shadow-lg border border-gray-200">
+                        {/* Totals */}
+                        <div className="bg-[#ffffff]/90 backdrop-blur-md p-5 rounded-xl shadow-lg border border-[#e5e7eb]">
                             <h3 className="font-semibold text-lg mb-3 text-black">Totals</h3>
                             <div className="flex justify-between mb-2 text-black">
                                 <span>Subtotal</span>
                                 <span>{invoice.currency} {totals.subTotal.toFixed(2)}</span>
                             </div>
                             <div className="flex items-center gap-3 mb-2">
-                                <label className="text-sm text-gray-600">Tax %</label>
+                                <label className="text-sm text-[#4b5563]">Tax %</label>
                                 <input
                                     type="number"
                                     className="w-20 border rounded-lg px-2 py-1 bg-white text-black placeholder-black focus:ring-2 focus:ring-blue-300 outline-none"
@@ -223,12 +269,13 @@ export default function App() {
                                 />
                                 <div className="ml-auto font-medium text-black">{invoice.currency} {totals.taxAmount.toFixed(2)}</div>
                             </div>
-                            <div className="flex justify-between font-bold text-xl mt-3 text-gray-800">
+                            <div className="flex justify-between font-bold text-xl mt-3 text-[#1f2937]">
                                 <span>Total</span>
                                 <span>{invoice.currency} {totals.grandTotal.toFixed(2)}</span>
                             </div>
                         </div>
 
+                        {/* Action Buttons */}
                         <div className="flex gap-4">
                             <button
                                 type="button"
@@ -236,25 +283,25 @@ export default function App() {
                                 className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg shadow transition">
                                 <FaFilePdf /> Export PDF
                             </button>
-
                             <button
                                 type="button"
                                 onClick={printInvoice}
-                                className="flex items-center gap-2 bg-gray-800 hover:bg-gray-900 text-white px-5 py-2 rounded-lg shadow transition">
+                                className="flex items-center gap-2 bg-[#1f2937] hover:bg-[#111827] text-white px-5 py-2 rounded-lg shadow transition">
                                 <FaPrint /> Print
                             </button>
                         </div>
                     </div>
 
+                    {/* Preview */}
                     <div>
                         <div
                             id="invoice-preview"
-                            className="bg-white p-6 rounded-xl shadow-xl max-w-[800px] mx-auto border border-gray-200"
+                            className="bg-white p-6 rounded-xl shadow-xl max-w-[800px] mx-auto border border-[#e5e7eb]"
                         >
                             <div className="flex justify-between items-start mb-6">
                                 <div>
                                     <h2 className="text-2xl font-bold text-blue-700">My Shop</h2>
-                                    <div className="text-sm text-gray-600">Villapuram Bus stop<br />Madurai, Tamilnadu</div>
+                                    <div className="text-sm text-[#4b5563]">Villapuram Bus stop<br />Madurai, Tamilnadu</div>
                                 </div>
                                 <div className="text-right text-black">
                                     <div>Invoice #: <strong>{invoice.invoiceNo}</strong></div>
@@ -271,7 +318,7 @@ export default function App() {
 
                             <table className="w-full mb-4">
                                 <thead>
-                                    <tr className="text-left border-b bg-gray-100">
+                                    <tr className="text-left border-b bg-[#f3f4f6]">
                                         <th className="py-2 text-blue-600">Description</th>
                                         <th className="py-2 w-20 text-blue-600">Qty</th>
                                         <th className="py-2 w-28 text-blue-600">Rate</th>
@@ -302,13 +349,13 @@ export default function App() {
                                     <span>Tax ({invoice.taxPercent}%):</span>
                                     <span>{invoice.currency} {totals.taxAmount.toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between w-64 font-bold text-lg mt-2 text-gray-800">
+                                <div className="flex justify-between w-64 font-bold text-lg mt-2 text-[#1f2937]">
                                     <span>Total:</span>
                                     <span>{invoice.currency} {totals.grandTotal.toFixed(2)}</span>
                                 </div>
                             </div>
 
-                            <div className="mt-6 text-sm text-gray-600">
+                            <div className="mt-6 text-sm text-[#4b5563]">
                                 <div>Notes:</div>
                                 <div>Thank you for your business!</div>
                             </div>
